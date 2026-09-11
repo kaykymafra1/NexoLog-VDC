@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Command Center logístico para planejamento de rotas, ordens de carga, frota e entregas."><title>OmniRoute TMS — Command Center Logístico V5</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>:root{
+  color-scheme:dark;--bg:#030b15;--panel:#071a2c;--panel-2:#09243b;--panel-3:#0c2d49;
+  --line:#173d5d;--line-strong:#235d86;--text:#f1f8ff;--muted:#91abc0;--faint:#628098;
+  --blue:#2b8cff;--cyan:#22c8f2;--green:#31db83;--orange:#ff9f32;--red:#ff6070;
+  --shadow:0 18px 46px rgba(0,0,0,.28);--radius:14px;--sidebar:214px
+}
+*{box-sizing:border-box}html{font-size:16px}body{margin:0;min-width:320px;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI",system-ui,sans-serif}button,input,select{font:inherit}button{color:inherit}.hidden{display:none!important}
+.app-shell{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:100vh;background:radial-gradient(circle at 72% -10%,#0b3153 0,#06182a 35%,#030b15 74%)}
+.sidebar{position:sticky;top:0;height:100vh;padding:20px 14px;border-right:1px solid var(--line);background:linear-gradient(180deg,#071a2d,#04101c);z-index:20;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:12px;padding:2px 7px 21px;border-bottom:1px solid var(--line)}.brand b{display:block;font-size:.95rem;letter-spacing:.11em}.brand small{display:block;margin-top:3px;font-size:.72rem;letter-spacing:.13em;color:#7c9db8}
+.brand-mark{width:40px;height:40px;position:relative;display:grid;place-items:center;transform:rotate(30deg)}.brand-mark span{position:absolute;width:25px;height:13px;border:2px solid #45c8ff;border-radius:3px}.brand-mark span:nth-child(1){transform:translateY(-8px);background:#188fff}.brand-mark span:nth-child(2){transform:translateY(0);background:#0c72dc}.brand-mark span:nth-child(3){transform:translateY(8px);background:#0757a8}
+.nav{display:grid;gap:5px;margin-top:18px}.nav button{appearance:none;border:1px solid transparent;background:transparent;border-radius:10px;padding:11px 12px;display:grid;grid-template-columns:25px 1fr;gap:9px;text-align:left;align-items:center;color:#a7bed2;cursor:pointer;transition:.16s}.nav button:hover{background:#0a2943;color:#fff}.nav button[aria-current=page]{background:linear-gradient(90deg,#0e4e82,#0a304f);border-color:#17679d;box-shadow:inset 3px 0 #31baff;color:#fff}.nav button span:first-child{font-size:1.1rem;color:#58caff}.nav button span:last-child{font-size:.84rem;font-weight:650}
+.side-health{margin-top:auto;display:flex;gap:9px;align-items:center;padding:12px;border:1px solid #17466c;border-radius:11px;background:#082038}.side-health b,.side-health small{display:block}.side-health b{font-size:.76rem}.side-health small{font-size:.68rem;color:var(--muted);margin-top:2px}.online-dot{width:8px;height:8px;flex:0 0 auto;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}
+.main{min-width:0}.topbar{position:sticky;top:0;z-index:12;padding:17px 22px 14px;border-bottom:1px solid var(--line);background:rgba(3,11,21,.92);backdrop-filter:blur(16px);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:13px 22px}.title-block .eyebrow,.panel-kicker{font-size:.67rem;letter-spacing:.14em;color:#52c9ff;font-weight:800}.title-block h1{font-size:1.55rem;line-height:1.15;margin:3px 0}.title-block p{margin:0;color:var(--muted);font-size:.82rem}.user-status{display:flex;align-items:center;gap:10px}.user-status b,.user-status small{display:block;text-align:right}.user-status b{font-size:.78rem}.user-status small{font-size:.68rem;color:var(--muted);margin-top:2px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#20b7f3,#1569d7);font-size:.72rem;font-weight:800;border:1px solid #50c9fa}.mobile-menu{display:none}
+.filters{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.25fr auto;gap:10px;align-items:end}.filters label span{display:block;color:#83a3bc;font-size:.72rem;font-weight:700;margin:0 0 5px 2px}.filters select,.filters input{width:100%;height:40px;border:1px solid #1d4c70;border-radius:8px;background:#09233a;color:var(--text);padding:0 11px;outline:none}.filters select:focus,.filters input:focus{border-color:#37baff;box-shadow:0 0 0 3px rgba(55,186,255,.12)}.primary{height:40px;border:0;border-radius:8px;padding:0 18px;background:linear-gradient(135deg,#22bff8,#176ff0);font-size:.8rem;font-weight:800;cursor:pointer;box-shadow:0 8px 20px rgba(23,111,240,.25)}
+.content{padding:14px 17px 28px;outline:none}.kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px;margin-bottom:10px}.kpi-card{min-height:100px;padding:13px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,#0a2945,#071a2d);box-shadow:0 10px 28px rgba(0,0,0,.12)}.kpi-label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#91adc4;font-size:.74rem}.kpi-label .icon{font-size:1.15rem;color:#3abaff}.kpi-card strong{display:block;margin-top:7px;font-size:1.35rem;line-height:1.1}.kpi-card small{display:block;margin-top:6px;color:#60dca5;font-size:.69rem}
+.panel{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,#081e33,#061725);box-shadow:var(--shadow)}.panel>header{height:54px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#0a2945,#082238)}.panel>header h3{font-size:.86rem;margin:2px 0 0}.panel>header>span{font-size:.7rem;color:var(--muted)}.source-chip{padding:6px 9px;border:1px solid #1e557e;border-radius:999px;color:#79d9ff!important;background:#082d4a}.planning-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(355px,.84fr);gap:10px}.map-stage{height:470px;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#0c3152,#04111e 72%)}#route-map,.route-map{width:100%;height:100%;display:block}.map-grid path{stroke:#19476e;stroke-width:.7;opacity:.35}.territory{fill:#082744;stroke:#28618a;stroke-width:1.5;opacity:.92}.road-hints path{fill:none;stroke:#2f6080;stroke-width:2;stroke-dasharray:5 7;opacity:.45}.route-shadow{fill:none;stroke:#020810;stroke-width:11;stroke-linecap:round;stroke-linejoin:round;opacity:.7}.route-line{fill:none;stroke:var(--route);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;filter:url(#routeGlow);cursor:pointer}.map-route{opacity:.55;transition:.18s}.map-route:hover,.map-route.active{opacity:1}.map-route:focus{outline:none}.map-route:focus .route-line{stroke-width:8}.waypoint,.destination{fill:var(--route)}.destination-halo{fill:none;stroke:var(--route);stroke-width:2;opacity:.45}.map-label{fill:#061727;stroke:#245579}.map-route text,.origin text,.scale text,.compass text{fill:#eaf7ff;font-size:12px;font-weight:650}.origin circle:first-child{fill:#143d68;stroke:#52c9ff;stroke-width:3}.origin circle:nth-child(2){fill:#fff}.compass circle{fill:#061727;stroke:#28577a}.compass path{fill:#dff6ff}.compass text{text-anchor:middle}.scale path{stroke:#a9c1d3;stroke-width:2}.scale text{font-size:10px;fill:#93abc0}.map-legend{position:absolute;left:13px;top:13px;width:208px;padding:8px;border:1px solid #245476;border-radius:11px;background:rgba(3,13,23,.9);box-shadow:0 14px 32px rgba(0,0,0,.32);backdrop-filter:blur(8px)}.map-legend button{width:100%;display:grid;grid-template-columns:9px 46px 1fr;gap:7px;align-items:center;padding:7px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer}.map-legend button:hover{background:#0c2b44}.map-legend i{width:8px;height:8px;border-radius:50%;background:var(--route);box-shadow:0 0 8px var(--route)}.map-legend span{font-size:.7rem;color:var(--muted)}.map-legend b{font-size:.72rem}
+.routes-panel,.route-list{height:525px}.route-list{overflow:auto;padding:10px}.route-card{width:100%;display:block;text-align:left;border:1px solid #184365;border-left:3px solid var(--route);border-radius:11px;background:#082038;padding:11px;margin-bottom:9px;cursor:pointer;transition:.16s}.route-card:hover,.route-card.active{transform:translateY(-1px);border-color:var(--route);background:#0a2944;box-shadow:0 10px 24px rgba(0,0,0,.18)}.route-card-top{display:flex;justify-content:space-between;gap:8px}.route-card-top small,.route-card-top strong{display:block}.route-card-top small{font-size:.68rem;color:#76cfff;margin-bottom:3px}.route-card-top strong{font-size:.79rem}.route-facts{display:grid;grid-template-columns:1.05fr 1fr .86fr;gap:8px;margin-top:11px}.route-facts span{min-width:0;padding-left:8px;border-left:1px solid #19415f}.route-facts span:first-child{padding-left:0;border:0}.route-facts small,.route-facts b,.route-facts em{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.route-facts small{font-size:.63rem;color:#748fa5}.route-facts b{font-size:.7rem;margin-top:2px}.route-facts em{font-size:.65rem;color:var(--muted);font-style:normal;margin-top:2px}.load-line{height:5px;margin-top:10px;border-radius:99px;background:#04111e;overflow:hidden}.load-line span{display:block;height:100%;background:var(--route)}.load-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:.65rem;color:var(--muted)}.load-meta b{color:#63dba7}
+.badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;border:1px solid #2a536f;background:#11334b;color:#b9d0e0;font-size:.64rem;font-weight:750;white-space:nowrap}.badge-info{color:#77c9ff;border-color:#24659c;background:#0d3455}.badge-success{color:#72e8af;border-color:#1e7151;background:#0b3b2c}.badge-warning{color:#ffc56c;border-color:#7d5721;background:#402d12}.badge-danger{color:#ff929d;border-color:#7b3440;background:#401822}
+.planning-bottom{display:grid;grid-template-columns:1.08fr .92fr;gap:10px;margin-top:10px}.planning-bottom>.panel{height:315px}.table-wrap{width:100%;overflow:auto}table{width:100%;border-collapse:collapse;min-width:660px}th{position:sticky;top:0;z-index:1;background:#0b2943;color:#86a4bc;text-align:left;font-size:.69rem;letter-spacing:.02em;padding:11px;border-bottom:1px solid var(--line)}td{padding:11px;border-bottom:1px solid #11334f;color:#d7e7f2;font-size:.72rem}td small{display:block;color:var(--muted);font-size:.64rem;margin-top:2px}.network-stage{position:relative;height:260px;background:radial-gradient(circle at 50% 70%,#0b3153,#04101c 72%);overflow:hidden}.network-stage canvas{display:block;cursor:grab}.network-stage canvas:active{cursor:grabbing}.network-stats{position:absolute;right:9px;bottom:9px;display:flex;gap:6px}.network-stats span{min-width:68px;padding:7px;border:1px solid #1f5278;border-radius:8px;background:rgba(4,17,29,.9);font-size:.62rem;color:var(--muted)}.network-stats b{display:block;color:#72d5ff;font-size:.9rem;margin-bottom:2px}
+.section-heading{display:flex;justify-content:space-between;gap:16px;align-items:end;margin:3px 0 14px}.section-heading h2{margin:0;font-size:1.2rem}.section-heading p{margin:4px 0 0;color:var(--muted);font-size:.78rem}.section-tag{padding:7px 10px;border-radius:999px;border:1px solid #24587f;background:#092943;color:#75d4ff;font-size:.7rem}.two-cols{display:grid;grid-template-columns:1.1fr .9fr;gap:10px}.timeline{padding:14px}.timeline>div{display:grid;grid-template-columns:55px 1fr;gap:11px;padding:0 0 17px;position:relative}.timeline>div:before{content:"";position:absolute;left:64px;top:6px;bottom:-4px;border-left:1px solid #235171}.timeline>div:last-child:before{display:none}.timeline time{font-size:.72rem;color:#5acdfb;font-weight:700}.timeline span{position:relative;padding-left:16px}.timeline span:before{content:"";position:absolute;left:-4px;top:3px;width:9px;height:9px;border-radius:50%;background:#2b8cff;box-shadow:0 0 9px #2b8cff}.timeline b,.timeline small{display:block}.timeline b{font-size:.77rem}.timeline small{font-size:.69rem;color:var(--muted);margin-top:4px}.alert-list{padding:10px;display:grid;gap:8px}.alert-list>div{display:grid;grid-template-columns:.7fr 1.2fr auto;align-items:center;gap:9px;padding:11px;border:1px solid #17405f;border-radius:9px;background:#082038}.alert-list b,.alert-list span{font-size:.72rem}.alert-list>div>span{color:var(--muted)}
+.table-panel{max-height:calc(100vh - 225px)}.table-panel .table-wrap{max-height:calc(100vh - 225px)}.entity-grid,.integration-grid{display:grid;grid-template-columns:repeat(3,minmax(230px,1fr));gap:10px}.entity-card,.integration-card,.chart-card,.settings-card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(150deg,#09243d,#071927);padding:14px;box-shadow:var(--shadow)}.entity-top{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:10px;align-items:center}.entity-top h3,.integration-card h3,.chart-card h3,.settings-card h3{font-size:.86rem;margin:0}.entity-top p,.integration-card p{font-size:.69rem;color:var(--muted);margin:3px 0 0}.vehicle-icon,.driver-avatar{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:#0e416d;color:#57c8ff;font-weight:800}.driver-avatar{border-radius:50%;font-size:.7rem}.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}.metric-row span{padding:9px;border:1px solid #153c5b;border-radius:8px;background:#061725}.metric-row b,.metric-row small{display:block}.metric-row b{font-size:.82rem}.metric-row small{font-size:.61rem;color:var(--muted);margin-top:3px}.card-foot{display:flex;justify-content:space-between;gap:10px;margin-top:11px;font-size:.65rem;color:var(--muted)}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.chart-card{min-height:225px}.chart-card h3{margin-bottom:18px}.bars{display:grid;gap:13px}.bar-row{display:grid;grid-template-columns:75px minmax(80px,1fr) 90px;gap:10px;align-items:center}.bar-row>span,.bar-row>strong{font-size:.69rem}.bar-row>strong{text-align:right}.bar-row>i{height:9px;border-radius:99px;background:#04111e;overflow:hidden}.bar-row>i>b{display:block;height:100%;background:linear-gradient(90deg,#176ff0,#22c8f2);border-radius:99px}.bar-row>i>b[style*="orange"]{background:linear-gradient(90deg,#f27b22,#ffc24c)}.bar-row>i>b[style*="green"]{background:linear-gradient(90deg,#18ae70,#42e8a0)}.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.insights span{padding:15px 10px;border:1px solid #17415f;border-radius:10px;background:#071a2b}.insights b,.insights small{display:block}.insights b{font-size:1.18rem;color:#62d2ff}.insights small{font-size:.66rem;color:var(--muted);margin-top:5px}
+.integration-card>span{font-size:.65rem;letter-spacing:.08em;color:#58c9f8}.integration-card h3{margin-top:7px}.integration-card p{min-height:34px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.settings-card h3{margin-bottom:8px}.switch-row{position:relative;display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #143650;font-size:.74rem;cursor:pointer}.switch-row:last-child{border:0}.switch-row input{position:absolute;opacity:0}.switch-row i{width:38px;height:21px;border-radius:99px;background:#24435a;padding:3px;transition:.18s}.switch-row i:after{content:"";display:block;width:15px;height:15px;border-radius:50%;background:#96aaba;transition:.18s}.switch-row input:checked+i{background:#177fe3}.switch-row input:checked+i:after{transform:translateX(17px);background:#fff}.empty-state,.loading,.fatal-error{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;color:var(--muted)}.empty-state strong{color:var(--text)}.loading span{width:28px;height:28px;border:3px solid #184765;border-top-color:#32bdf7;border-radius:50%;animation:spin .8s linear infinite}.loading strong{font-size:.82rem}.fatal-error{min-height:100vh}.toast{position:fixed;right:18px;bottom:18px;z-index:99;max-width:360px;padding:11px 14px;border:1px solid #2771a0;border-radius:10px;background:#0a2b46;color:#e5f7ff;font-size:.76rem;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:none}@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:1280px){:root{--sidebar:82px}.brand>div:last-child,.nav button span:last-child,.side-health div{display:none}.brand{justify-content:center}.nav button{display:flex;justify-content:center}.side-health{justify-content:center}.filters{grid-template-columns:repeat(3,1fr)}.kpi-grid{grid-template-columns:repeat(3,1fr)}.planning-grid,.planning-bottom{grid-template-columns:1fr}.routes-panel,.route-list{height:auto;max-height:480px}.entity-grid,.integration-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.app-shell{display:block}.sidebar{position:fixed;left:-230px;width:220px;transition:.2s;box-shadow:20px 0 45px rgba(0,0,0,.45)}.sidebar.open{left:0}.brand>div:last-child,.nav button span:last-child,.side-health div{display:block}.nav button{display:grid;justify-content:initial}.side-health{justify-content:initial}.mobile-menu{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);border-radius:8px;background:#09253d;font-size:1rem}.topbar{position:relative;grid-template-columns:auto 1fr}.user-status{display:none}.filters{grid-template-columns:1fr 1fr}.filters .primary{grid-column:1/-1}.content{padding:11px}.kpi-grid{grid-template-columns:1fr 1fr}.map-stage{height:410px}.map-legend{width:180px}.planning-bottom>.panel{height:auto}.network-stage{height:280px}.two-cols,.report-grid,.settings-grid,.entity-grid,.integration-grid{grid-template-columns:1fr}.section-heading{align-items:flex-start}.route-facts{grid-template-columns:1fr 1fr}.route-facts span:last-child{display:none}}
+@media(max-width:460px){.filters{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr}.map-stage{height:360px}.map-legend{position:static;width:auto;margin:8px}.route-map{height:290px}.map-stage{height:auto}.network-stats{left:8px;right:8px}.network-stats span{flex:1}.section-tag{display:none}.title-block h1{font-size:1.2rem}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* V4 — mapa geográfico, monitoramento operacional e financeiro de viagem */
+.kpi-grid{grid-template-columns:repeat(8,minmax(118px,1fr))}.kpi-card{min-height:92px}.map-stage{isolation:isolate;z-index:0}.map-stage>#route-map{position:absolute;inset:0;z-index:0}.leaflet-host{position:absolute;inset:0;width:100%;height:100%;z-index:0}.leaflet-container{background:#061827;font-family:inherit}.leaflet-pane,.leaflet-top,.leaflet-bottom{z-index:auto}.leaflet-control{z-index:5}.leaflet-control-attribution{font-size:9px;background:rgba(4,17,29,.8)!important;color:#9eb7ca!important}.leaflet-control-attribution a{color:#65c8ff!important}.map-legend{z-index:7}.map-note{position:absolute;left:13px;bottom:13px;z-index:7;padding:7px 10px;border:1px solid #245476;border-radius:9px;background:rgba(3,13,23,.88);font-size:.65rem;color:#a8c3d7;backdrop-filter:blur(8px)}.map-pin{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;border:2px solid #fff;box-shadow:0 7px 18px rgba(0,0,0,.38);font-weight:900}.map-pin.depot{background:#22c983;color:#052417;border-radius:9px}.map-pin.destination{background:var(--pin);color:white}.truck-marker{display:grid;place-items:center;width:34px;height:28px;border-radius:9px;border:2px solid white;background:var(--pin);color:#fff;box-shadow:0 7px 18px rgba(0,0,0,.38);font-size:16px}.ops-dashboard-grid{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:10px;margin-top:10px}.compact-panel{min-height:184px}.compact-panel>header{height:48px}.monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}.monitor-card{min-height:54px;border:1px solid #17415f;border-radius:10px;background:#071a2b;padding:8px 10px;display:flex;align-items:center;gap:10px}.monitor-card>span{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#0c3455;color:#69d2ff;font-weight:900}.monitor-card small,.monitor-card b{display:block}.monitor-card small{font-size:.62rem;color:var(--muted)}.monitor-card b{font-size:.86rem;margin-top:3px}.monitor-card.green>span{color:#69e4a7;background:#0d3b2c}.monitor-card.orange>span{color:#ffc367;background:#3b2c13}.monitor-card.red>span{color:#ff8490;background:#3c1920}.monitor-card.purple>span{color:#bd9cff;background:#2c214a}.mini-alerts{padding:8px 10px}.mini-alerts>div{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:9px;align-items:start;padding:8px 4px;border-bottom:1px solid #123650}.mini-alerts>div:last-child{border-bottom:0}.mini-alerts i{width:7px;height:7px;border-radius:50%;margin-top:4px;background:#58bfff}.mini-alerts i.critico{background:#ff6070}.mini-alerts i.atencao{background:#ffb43c}.mini-alerts b,.mini-alerts small{display:block}.mini-alerts b{font-size:.69rem}.mini-alerts small{font-size:.61rem;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini-alerts time{font-size:.61rem;color:#6f91aa}
+@media(max-width:1500px){.kpi-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:1280px){.ops-dashboard-grid{grid-template-columns:1fr 1fr}.ops-dashboard-grid>.panel:last-child{grid-column:1/-1}}
+@media(max-width:760px){.ops-dashboard-grid{grid-template-columns:1fr}.ops-dashboard-grid>.panel:last-child{grid-column:auto}.map-note{display:none}.kpi-grid{grid-template-columns:1fr 1fr}}
+
+/* V5 — mapa geográfico com rotas viárias reais, glow moderno e marcadores por etapa */
+.map-stage{background:#071827;isolation:isolate;contain:paint}.leaflet-host{overflow:hidden;border-radius:0 0 14px 14px}.leaflet-host:after{content:"";position:absolute;inset:0;z-index:450;pointer-events:none;background:linear-gradient(180deg,rgba(2,10,20,.10),transparent 28%,rgba(2,10,20,.16));box-shadow:inset 0 0 80px rgba(0,10,24,.28)}
+.modern-map-tiles{filter:saturate(.82) brightness(.78) contrast(1.08)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#061827;color:#eaf7ff}.leaflet-popup-content-wrapper{border:1px solid #1e5b86;border-radius:11px;box-shadow:0 14px 38px rgba(0,0,0,.42)}.leaflet-popup-content{margin:11px 13px;font-family:inherit;font-size:12px;line-height:1.45}.leaflet-popup-content b{color:#fff}.leaflet-popup-content small{color:#8fb0c9}.leaflet-popup-close-button{color:#91abc0!important}
+.route-glow-path{filter:drop-shadow(0 0 5px currentColor);pointer-events:none}.route-core-path{filter:drop-shadow(0 0 4px currentColor)}.route-shimmer-path{stroke-dasharray:2 15;stroke-linecap:round;animation:routeDash 2.6s linear infinite;pointer-events:none}@keyframes routeDash{to{stroke-dashoffset:-85}}
+.route-map-label{display:flex;align-items:center;gap:7px;min-width:104px;padding:6px 9px;border-radius:9px;border:1px solid color-mix(in srgb,var(--pin) 70%,#fff 8%);background:rgba(4,17,30,.94);box-shadow:0 8px 22px rgba(0,0,0,.36),0 0 16px color-mix(in srgb,var(--pin) 35%,transparent);color:#fff;font-size:10px;font-weight:800;white-space:nowrap}.route-map-label i{width:8px;height:8px;border-radius:50%;background:var(--pin);box-shadow:0 0 8px var(--pin)}.route-map-label span{color:#94aec3;font-weight:650}.route-map-label b{color:var(--pin)}
+.hub-modern{position:relative;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#08233c;border:3px solid #67d4ff;box-shadow:0 0 0 7px rgba(38,187,255,.13),0 10px 22px rgba(0,0,0,.4);color:white}.hub-modern:after{content:"";position:absolute;inset:-8px;border:1px solid rgba(103,212,255,.46);border-radius:50%;animation:hubPulse 2s ease-out infinite}@keyframes hubPulse{0%{transform:scale(.85);opacity:.85}100%{transform:scale(1.35);opacity:0}}.hub-modern svg{width:20px;height:20px;fill:#e8f8ff}
+.delivery-stop{position:relative;width:27px;height:27px;display:grid;place-items:center;border-radius:50%;border:3px solid #fff;background:var(--pin);color:#fff;font-size:10px;font-weight:900;box-shadow:0 6px 16px rgba(0,0,0,.38),0 0 14px color-mix(in srgb,var(--pin) 55%,transparent)}.delivery-stop:after{content:"";position:absolute;inset:-5px;border:1px solid color-mix(in srgb,var(--pin) 60%,transparent);border-radius:50%}.delivery-stop.first{width:32px;height:32px;background:#0b304d;border-color:#fff}.delivery-stop.first span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pin)}.delivery-stop.first em{position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);padding:2px 6px;border-radius:5px;background:#061827;color:#d9efff;border:1px solid #204f70;font-size:8px;font-style:normal;white-space:nowrap}.delivery-stop.final{width:34px;height:34px;border-radius:9px;background:#07192a;border-color:var(--pin)}.delivery-stop.final svg{width:20px;height:20px;fill:var(--pin)}.delivery-stop.final em{position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);padding:2px 6px;border-radius:5px;background:#061827;color:#d9efff;border:1px solid #204f70;font-size:8px;font-style:normal;white-space:nowrap}
+.truck-modern{position:relative;width:42px;height:30px;display:grid;place-items:center;border-radius:8px;border:2px solid #fff;background:var(--pin);box-shadow:0 8px 20px rgba(0,0,0,.4),0 0 18px color-mix(in srgb,var(--pin) 55%,transparent);color:#fff}.truck-modern svg{width:23px;height:23px;fill:#fff}.truck-modern:after{content:"";position:absolute;inset:-5px;border-radius:11px;border:1px solid color-mix(in srgb,var(--pin) 55%,transparent)}
+.map-note{display:flex!important;align-items:center;gap:11px;flex-wrap:wrap;max-width:calc(100% - 30px);background:rgba(3,13,23,.93)}.map-note .legend-mini{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.map-note .legend-mini i{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;font-style:normal;font-size:8px;font-weight:900;background:#16354e;color:#fff;border:1px solid #4f7898}.map-note .legend-mini.first i{background:#1576d1}.map-note .legend-mini.final i{border-radius:5px;background:#101f2e;color:#ffcf4d}.map-note .legend-mini.truck i{border-radius:5px;background:#0e6cbd}.map-note .legend-mini.hub i{background:#0a2a44;border-color:#67d4ff}
+.route-source-badge{position:absolute;right:13px;bottom:13px;z-index:7;padding:6px 9px;border:1px solid #1b5279;border-radius:8px;background:rgba(3,13,23,.9);font-size:9px;color:#8fbedf;backdrop-filter:blur(8px)}
+@media(max-width:760px){.map-note{display:none!important}.route-source-badge{bottom:10px}.route-map-label{display:none}}
+
+</style></head><body><div id="app" aria-live="polite"></div><noscript>Ative o JavaScript para utilizar o OmniRoute TMS.</noscript><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+/* src/domain/entities/route-plan.js */
+class RoutePlan {
+  constructor(data) {
+    const required = ['id', 'order', 'origin', 'destination', 'capacityKg', 'loadKg'];
+    for (const field of required) if (data[field] == null) throw new Error(`RoutePlan: campo obrigatório ${field}`);
+    Object.assign(this, structuredClone(data));
+    Object.freeze(this.origin);
+    Object.freeze(this.destination);
+    if (this.coordinates) Object.freeze(this.coordinates);
+    Object.freeze(this);
+  }
+
+  get utilization() { return Math.min(100, Math.round((this.loadKg / this.capacityKg) * 100)); }
+  get distanceKm() { return Number(this.route?.distanceKm ?? this.fallbackDistanceKm ?? 0); }
+  get durationMin() { return Number(this.route?.durationMin ?? this.fallbackDurationMin ?? 0); }
+  get coordinates() { return this.route?.coordinates ?? this.fallbackCoordinates ?? []; }
+  get source() { return this.route?.source ?? 'DEMO'; }
+  get cost() { return this.distanceKm * this.costPerKm; }
+  get savingKm() { return Math.max(0, this.baselineKm - this.distanceKm); }
+
+  withCalculatedRoute(route) {
+    return new RoutePlan({ ...this, route: structuredClone(route) });
+  }
+}
+
+
+/* src/application/use-cases/load-route-dashboard.js */
+
+class LoadRouteDashboard {
+  constructor(repository, routingService) {
+    this.repository = repository;
+    this.routingService = routingService;
+  }
+
+  async execute() {
+    const raw = await this.repository.getDashboardData();
+    const routes = await Promise.all(raw.routes.map(async item => {
+      const entity = new RoutePlan(item);
+      try {
+        const calculated = await this.routingService.calculate(entity);
+        return entity.withCalculatedRoute(calculated);
+      } catch {
+        return entity.withCalculatedRoute({
+          source: 'DEMO OFFLINE',
+          distanceKm: entity.fallbackDistanceKm,
+          durationMin: entity.fallbackDurationMin,
+          coordinates: entity.fallbackCoordinates
+        });
+      }
+    }));
+
+    return Object.freeze({
+      ...raw,
+      routes: Object.freeze(routes.map(route => this.#toViewModel(route)))
+    });
+  }
+
+  #toViewModel(route) {
+    return Object.freeze({
+      ...route,
+      utilization: route.utilization,
+      distanceKm: route.distanceKm,
+      durationMin: route.durationMin,
+      coordinates: route.coordinates,
+      source: route.source,
+      cost: route.cost,
+      savingKm: route.savingKm,
+      arrival: this.#addMinutes(route.departure, route.durationMin)
+    });
+  }
+
+  #addMinutes(hhmm, minutes) {
+    const [hours, mins] = hhmm.split(':').map(Number);
+    const total = hours * 60 + mins + Math.round(minutes);
+    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  }
+}
+
+
+/* src/application/ports/tms-repository.js */
+class TmsRepository {
+  async getDashboardData() { throw new Error('TmsRepository.getDashboardData precisa ser implementado'); }
+}
+
+
+/* src/infrastructure/repositories/mock-tms-repository.js */
+
+class MockTmsRepository extends TmsRepository {
+  async getDashboardData() {
+    const origin = { name: 'Vitória da Conquista - BA', lat: -14.8619, lng: -40.8442 };
+    return structuredClone({
+      routes: [
+        {
+          id: 'R1', name: 'Rota 1', order: 'OC-1045', region: 'Litoral - BA', origin,
+          destination: { name: 'Salvador - BA', lat: -12.9718, lng: -38.5011 },
+          vehicle: 'Carreta Bitrem', plate: 'RTE-4E21', driver: 'Carlos Silva', deliveries: 14,
+          loadKg: 24600, capacityKg: 28000, costPerKm: 7.45, departure: '05:40', status: 'Em rota', color: '#2b8cff', progress:.58, mdfe:'MDF-4321',
+          fallbackDistanceKm: 515, fallbackDurationMin: 522, baselineKm: 558,
+          stops:[
+            {id:'E01',seq:1,city:'Jequié',client:'Atacado Jequieense',lat:-13.8578,lng:-40.0836,type:'first'},
+            {id:'E02',seq:2,city:'Feira de Santana',client:'Comercial Atlântico',lat:-12.2664,lng:-38.9663,type:'stop'},
+            {id:'E03',seq:3,city:'Salvador',client:'Rede Litoral BA',lat:-12.9718,lng:-38.5011,type:'final'}
+          ],
+          fallbackCoordinates: [[-14.8619,-40.8442],[-14.38,-40.21],[-13.86,-40.08],[-13.34,-39.71],[-12.98,-39.05],[-12.9718,-38.5011]]
+        },
+        {
+          id: 'R2', name: 'Rota 2', order: 'OC-1046', region: 'Sudoeste - BA', origin,
+          destination: { name: 'Brumado - BA', lat: -14.2038, lng: -41.6653 },
+          vehicle: 'Truck 3/4', plate: 'QXZ-9H73', driver: 'José Almeida', deliveries: 9,
+          loadKg: 12800, capacityKg: 18000, costPerKm: 6.25, departure: '07:30', status: 'No prazo', color: '#ff9f32', progress:.34, mdfe:'MDF-4322',
+          fallbackDistanceKm: 217, fallbackDurationMin: 170, baselineKm: 236,
+          stops:[
+            {id:'E04',seq:1,city:'Anagé',client:'Distribuidora Sertão',lat:-14.6123,lng:-41.1356,type:'first'},
+            {id:'E05',seq:2,city:'Brumado',client:'Mercantil Brumado',lat:-14.2038,lng:-41.6653,type:'final'}
+          ],
+          fallbackCoordinates: [[-14.8619,-40.8442],[-14.61,-41.13],[-14.48,-41.32],[-14.28,-41.56],[-14.2038,-41.6653]]
+        },
+        {
+          id: 'R3', name: 'Rota 3', order: 'OC-1047', region: 'Chapada Diamantina - BA', origin,
+          destination: { name: 'Seabra - BA', lat: -12.4169, lng: -41.7701 },
+          vehicle: 'VUC', plate: 'SJK-2C18', driver: 'Mariana Costa', deliveries: 11,
+          loadKg: 16200, capacityKg: 23000, costPerKm: 6.85, departure: '08:00', status: 'Atenção', color: '#31db83', progress:.22, mdfe:'MDF-4323',
+          fallbackDistanceKm: 314, fallbackDurationMin: 372, baselineKm: 342,
+          stops:[
+            {id:'E06',seq:1,city:'Barra da Estiva',client:'Chapada Alimentos',lat:-13.6268,lng:-41.3260,type:'first'},
+            {id:'E07',seq:2,city:'Lençóis',client:'Bahia Natural',lat:-12.5629,lng:-41.3892,type:'stop'},
+            {id:'E08',seq:3,city:'Seabra',client:'Rede Chapada',lat:-12.4169,lng:-41.7701,type:'final'}
+          ],
+          fallbackCoordinates: [[-14.8619,-40.8442],[-14.54,-41.15],[-13.98,-41.36],[-13.25,-41.55],[-12.4169,-41.7701]]
+        }
+      ],
+      deliveries: [
+        { id:'E01', order:'OC-1045', seq:1, city:'Jequié', client:'Atacado Jequieense', window:'09:30–10:15', status:'Em rota', route:'R1', weight:1680 },
+        { id:'E02', order:'OC-1045', seq:2, city:'Feira de Santana', client:'Comercial Atlântico', window:'13:00–14:00', status:'Programada', route:'R1', weight:2310 },
+        { id:'E03', order:'OC-1045', seq:3, city:'Salvador', client:'Rede Litoral BA', window:'15:30–17:00', status:'Programada', route:'R1', weight:3920 },
+        { id:'E04', order:'OC-1046', seq:1, city:'Anagé', client:'Distribuidora Sertão', window:'08:20–09:00', status:'No prazo', route:'R2', weight:1240 },
+        { id:'E05', order:'OC-1046', seq:2, city:'Brumado', client:'Mercantil Brumado', window:'10:30–12:00', status:'Programada', route:'R2', weight:2780 },
+        { id:'E06', order:'OC-1047', seq:1, city:'Barra da Estiva', client:'Chapada Alimentos', window:'12:00–13:00', status:'Atenção', route:'R3', weight:1900 },
+        { id:'E07', order:'OC-1047', seq:2, city:'Lençóis', client:'Bahia Natural', window:'14:30–15:30', status:'Programada', route:'R3', weight:1560 },
+        { id:'E08', order:'OC-1047', seq:3, city:'Seabra', client:'Rede Chapada', window:'16:00–17:00', status:'Programada', route:'R3', weight:2460 }
+      ],
+      vehicles: [
+        { plate:'RTE-4E21', model:'Volvo FH 540', type:'Carreta Bitrem', capacity:28000, status:'Em rota', utilization:88, km:184230, costKm:7.45, maintenance:'18/09/2026' },
+        { plate:'QXZ-9H73', model:'Mercedes Atego 1719', type:'Truck 3/4', capacity:18000, status:'Disponível', utilization:71, km:98210, costKm:6.25, maintenance:'23/09/2026' },
+        { plate:'SJK-2C18', model:'Iveco Daily', type:'VUC', capacity:23000, status:'Em rota', utilization:70, km:71150, costKm:6.85, maintenance:'15/09/2026' },
+        { plate:'PKR-7A41', model:'VW Delivery 11.180', type:'Toco', capacity:14000, status:'Retornado', utilization:0, km:142800, costKm:5.72, maintenance:'Hoje' }
+      ],
+      mdfes: [
+        { id:'MDF-4321', order:'OC-1045', route:'R1', vehicle:'RTE-4E21', driver:'Carlos Silva', issued:'10/09/2026 05:21', status:'Em trânsito', origin:'Vitória da Conquista', destination:'Salvador', protocol:'1352600004321' },
+        { id:'MDF-4322', order:'OC-1046', route:'R2', vehicle:'QXZ-9H73', driver:'José Almeida', issued:'10/09/2026 07:08', status:'Em trânsito', origin:'Vitória da Conquista', destination:'Brumado', protocol:'1352600004322' },
+        { id:'MDF-4323', order:'OC-1047', route:'R3', vehicle:'SJK-2C18', driver:'Mariana Costa', issued:'10/09/2026 07:42', status:'Atenção', origin:'Vitória da Conquista', destination:'Seabra', protocol:'1352600004323' },
+        { id:'MDF-4318', order:'OC-1038', route:'—', vehicle:'PKR-7A41', driver:'Rafael Santos', issued:'09/09/2026 06:10', status:'Encerrado', origin:'Vitória da Conquista', destination:'Itapetinga', protocol:'1352600004318' }
+      ],
+      tripFinance: [
+        { id:'FIN-801', driver:'Carlos Silva', route:'R1', type:'Adiantamento', description:'Adiantamento de viagem OC-1045', value:1800, date:'10/09/2026', status:'Liberado' },
+        { id:'FIN-802', driver:'Carlos Silva', route:'R1', type:'Abastecimento', description:'Abastecimento diesel', value:860, date:'10/09/2026', status:'Lançado' },
+        { id:'FIN-803', driver:'Carlos Silva', route:'R1', type:'Pedágio', description:'Pedágios previstos', value:245, date:'10/09/2026', status:'Lançado' },
+        { id:'FIN-804', driver:'José Almeida', route:'R2', type:'Adiantamento', description:'Adiantamento de viagem OC-1046', value:1200, date:'10/09/2026', status:'Liberado' },
+        { id:'FIN-805', driver:'Mariana Costa', route:'R3', type:'Adiantamento', description:'Adiantamento de viagem OC-1047', value:1500, date:'10/09/2026', status:'Liberado' },
+        { id:'FIN-806', driver:'Mariana Costa', route:'R3', type:'Despesa', description:'Alimentação e apoio de viagem', value:310, date:'10/09/2026', status:'Pendente prestação' },
+        { id:'FIN-807', driver:'Rafael Santos', route:'—', type:'Prestação', description:'Prestação de contas viagem anterior', value:640, date:'09/09/2026', status:'Pendente' }
+      ],
+      operationalAlerts: [
+        { severity:'Crítico', title:'MDF-e com inconsistência', detail:'MDF-4323 exige conferência antes do encerramento', time:'05:50' },
+        { severity:'Atenção', title:'Prestação de contas pendente', detail:'Rafael Santos possui viagem anterior sem fechamento', time:'07:45' },
+        { severity:'Atenção', title:'Rota 3 com janela apertada', detail:'Seabra possui risco de atraso de 35 min', time:'08:12' },
+        { severity:'Info', title:'Veículo retornado', detail:'PKR-7A41 disponível para nova conferência operacional', time:'09:05' }
+      ],
+      drivers: [
+        { name:'Carlos Silva', route:'R1', vehicle:'RTE-4E21', score:94, deliveries:128, onTime:96, hours:'05h18', status:'Em rota' },
+        { name:'José Almeida', route:'R2', vehicle:'QXZ-9H73', score:91, deliveries:116, onTime:95, hours:'03h10', status:'No prazo' },
+        { name:'Mariana Costa', route:'R3', vehicle:'SJK-2C18', score:88, deliveries:104, onTime:92, hours:'04h42', status:'Atenção' },
+        { name:'Rafael Santos', route:'—', vehicle:'—', score:96, deliveries:142, onTime:98, hours:'00h00', status:'Disponível' }
+      ]
+    });
+  }
+}
+
+
+/* src/application/ports/routing-service.js */
+class RoutingService {
+  async calculate() { throw new Error('RoutingService.calculate precisa ser implementado'); }
+}
+
+
+/* src/infrastructure/routing/osrm-routing-service.js */
+
+class OsrmRoutingService extends RoutingService {
+  constructor({ baseUrl = 'https://router.project-osrm.org', timeoutMs = 4500, fetchImpl = globalThis.fetch } = {}) {
+    super();
+    this.baseUrl = baseUrl;
+    this.timeoutMs = timeoutMs;
+    this.fetchImpl = fetchImpl;
+  }
+
+  async calculate(route) {
+    if (!this.fetchImpl) throw new Error('Fetch indisponível');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const routePoints=[route.origin,...(route.stops||[])];
+    const last=routePoints.at(-1);
+    if(!last || Math.abs(Number(last.lat)-Number(route.destination.lat))>.0001 || Math.abs(Number(last.lng)-Number(route.destination.lng))>.0001) routePoints.push(route.destination);
+    const points=routePoints.map(point=>`${point.lng},${point.lat}`).join(';');
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/route/v1/driving/${points}?overview=full&geometries=geojson&steps=false`, { signal: controller.signal });
+      if (!response.ok) throw new Error(`OSRM HTTP ${response.status}`);
+      const payload = await response.json();
+      const result = payload.routes?.[0];
+      if (!result?.geometry?.coordinates?.length) throw new Error('OSRM sem geometria');
+      return {
+        source: 'OSRM',
+        distanceKm: result.distance / 1000,
+        durationMin: result.duration / 60,
+        coordinates: result.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+
+/* src/application/use-cases/filter-dashboard.js */
+class FilterDashboard {
+  execute(data, criteria = {}) {
+    const normalizedOrder = String(criteria.order ?? '').trim().toLowerCase();
+    const routes = data.routes.filter(route =>
+      (!criteria.region || route.region === criteria.region) &&
+      (!criteria.vehicle || route.vehicle === criteria.vehicle) &&
+      (!criteria.driver || route.driver === criteria.driver) &&
+      (!normalizedOrder || route.order.toLowerCase().includes(normalizedOrder))
+    );
+    const routeIds = new Set(routes.map(route => route.id));
+    return Object.freeze({
+      ...data,
+      routes: Object.freeze(routes),
+      deliveries: Object.freeze(data.deliveries.filter(delivery => routeIds.has(delivery.route)))
+    });
+  }
+}
+
+
+/* src/shared/format.js */
+const money = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const number = value => Number(value).toLocaleString('pt-BR');
+const hours = minutes => `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}min`;
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  })[char]);
+}
+
+const safeColor = value => /^#[0-9a-f]{6}$/i.test(value) ? value : '#2b8cff';
+const statusTone = status => ({ 'Em rota':'info', 'No prazo':'success', 'Disponível':'success', 'Atenção':'warning', 'Manutenção':'danger' }[status] ?? 'neutral');
+
+
+/* src/infrastructure/maps/svg-route-map-adapter.js */
+
+class SvgRouteMapAdapter {
+  constructor(container, onSelect) {
+    this.container = container;
+    this.onSelect = onSelect;
+    this.handlers = [];
+  }
+
+  mount(routes, selectedId) {
+    if (!this.container) return;
+    const all = routes.flatMap(route => route.coordinates);
+    if (!all.length) return this.#empty();
+    const lats = all.map(point => point[0]);
+    const lngs = all.map(point => point[1]);
+    const bounds = { minLat: Math.min(...lats), maxLat: Math.max(...lats), minLng: Math.min(...lngs), maxLng: Math.max(...lngs) };
+    const project = ([lat, lng]) => {
+      const x = 64 + ((lng - bounds.minLng) / Math.max(.001, bounds.maxLng - bounds.minLng)) * 792;
+      const y = 485 - ((lat - bounds.minLat) / Math.max(.001, bounds.maxLat - bounds.minLat)) * 410;
+      return [x, y];
+    };
+    const grid = Array.from({ length: 12 }, (_, i) => `<path d="M ${i*90} 0 L ${i*90} 560"/>`).join('') +
+      Array.from({ length: 8 }, (_, i) => `<path d="M 0 ${i*80} L 920 ${i*80}"/>`).join('');
+    const paths = routes.map(route => {
+      const points = route.coordinates.map(project);
+      const d = points.map(([x,y], index) => `${index ? 'L' : 'M'} ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+      const [dx,dy] = points.at(-1);
+      const active = route.id === selectedId;
+      return `<g class="map-route ${active ? 'active' : ''}" data-map-route="${escapeHtml(route.id)}" role="button" tabindex="0" aria-label="Selecionar ${escapeHtml(route.name)} para ${escapeHtml(route.destination.name)}">
+        <path class="route-shadow" d="${d}"/><path class="route-line" d="${d}" style="--route:${safeColor(route.color)}"/>
+        ${points.slice(1,-1).map(([x,y]) => `<circle class="waypoint" cx="${x}" cy="${y}" r="4" style="--route:${safeColor(route.color)}"/>`).join('')}
+        <g transform="translate(${dx} ${dy})"><circle class="destination-halo" r="16" style="--route:${safeColor(route.color)}"/><circle class="destination" r="8" style="--route:${safeColor(route.color)}"/></g>
+        <g transform="translate(${Math.min(790, Math.max(75, dx + 12))} ${Math.max(35, dy - 18)})"><rect class="map-label" x="0" y="-20" width="116" height="30" rx="7"/><text x="9" y="0">${escapeHtml(route.destination.name.split(' - ')[0])}</text></g>
+      </g>`;
+    }).join('');
+    const [ox,oy] = project(routes[0].origin ? [routes[0].origin.lat, routes[0].origin.lng] : all[0]);
+    this.container.innerHTML = `<svg class="route-map" viewBox="0 0 920 560" role="img" aria-label="Mapa esquemático das rotas planejadas na Bahia">
+      <defs><filter id="routeGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <g class="map-grid">${grid}</g>
+      <path class="territory" d="M96,468 C146,390 105,302 171,221 C229,149 335,114 411,70 C536,18 713,35 848,108 C896,181 882,299 825,385 C731,472 548,530 370,517 C259,515 150,510 96,468Z"/>
+      <g class="road-hints"><path d="M112 452 C270 380 380 292 521 185 S742 95 853 118"/><path d="M147 390 C292 407 442 352 577 281 S767 218 857 232"/><path d="M204 492 C298 376 313 218 425 84"/><path d="M382 514 C473 411 544 302 617 72"/></g>
+      ${paths}
+      <g class="origin" transform="translate(${ox} ${oy})"><circle r="17"/><circle r="7"/><text x="21" y="5">CD Vitória da Conquista</text></g>
+      <g class="compass" transform="translate(51 66)"><circle r="26"/><path d="M0 -17 L7 7 L0 3 L-7 7Z"/><text y="42">N</text></g>
+      <g class="scale" transform="translate(45 520)"><path d="M0 0 H145"/><path d="M0 -5 V5 M72 -5 V5 M145 -5 V5"/><text x="0" y="20">0</text><text x="63" y="20">150</text><text x="132" y="20">300 km</text></g>
+    </svg>`;
+    this.container.querySelectorAll('[data-map-route]').forEach(element => {
+      const select = () => this.onSelect?.(element.dataset.mapRoute);
+      element.addEventListener('click', select);
+      element.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') select(); });
+      this.handlers.push([element, select]);
+    });
+  }
+
+  #empty() { this.container.innerHTML = '<div class="empty-state">Nenhuma rota corresponde aos filtros atuais.</div>'; }
+  destroy() { this.handlers = []; if (this.container) this.container.replaceChildren(); }
+}
+
+
+/* src/infrastructure/maps/hybrid-route-map-adapter.js */
+
+class HybridRouteMapAdapter {
+  constructor(container, onSelect) {
+    this.container=container; this.onSelect=onSelect; this.fallback=null; this.map=null; this.layers=[];
+  }
+
+  mount(routes, selectedId) {
+    if(!this.container) return;
+    if(!globalThis.L){this.fallback=new SvgRouteMapAdapter(this.container,this.onSelect);this.fallback.mount(routes,selectedId);return;}
+    const L=globalThis.L;
+    this.container.innerHTML='<div class="leaflet-host" aria-label="Mapa geográfico das rotas reais"></div>';
+    const host=this.container.querySelector('.leaflet-host');
+    this.map=L.map(host,{zoomControl:false,preferCanvas:false,attributionControl:true,zoomSnap:.25});
+    L.control.zoom({position:'topright'}).addTo(this.map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors',className:'modern-map-tiles'}).addTo(this.map);
+    this.map.createPane('routeGlowPane');this.map.getPane('routeGlowPane').style.zIndex=390;this.map.getPane('routeGlowPane').style.pointerEvents='none';
+    this.map.createPane('routeBasePane');this.map.getPane('routeBasePane').style.zIndex=400;
+    this.map.createPane('routeShinePane');this.map.getPane('routeShinePane').style.zIndex=410;this.map.getPane('routeShinePane').style.pointerEvents='none';
+    if(!routes.length) return;
+
+    const origin=routes[0].origin;
+    const hubHtml='<div class="hub-modern"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 4l9 6.5v8.2a1.3 1.3 0 0 1-1.3 1.3H4.3A1.3 1.3 0 0 1 3 18.7v-8.2Zm4 1.2v6.1h3.3v-6.1H7Zm6.1 0v2.2H18v-2.2h-4.9Zm0 3.4v2.7H18v-2.7h-4.9Z"/></svg></div>';
+    const depot=L.marker([origin.lat,origin.lng],{icon:L.divIcon({className:'',html:hubHtml,iconSize:[42,42],iconAnchor:[21,21]}),zIndexOffset:1200}).addTo(this.map).bindPopup('<b>Hub Principal</b><br>Vitória da Conquista - BA<br><small>Origem das ordens de carga planejadas</small>');
+    this.layers.push(depot);
+
+    const all=[];
+    routes.forEach(route=>{
+      const coords=route.coordinates||route.fallbackCoordinates||[]; if(!coords.length)return; all.push(...coords);
+      const active=route.id===selectedId;
+      const color=safeColor(route.color);
+      const glow=L.polyline(coords,{pane:'routeGlowPane',color,weight:active?18:14,opacity:active?.20:.11,lineCap:'round',lineJoin:'round',className:'route-glow-path'}).addTo(this.map);
+      const border=L.polyline(coords,{pane:'routeBasePane',color:'#03101c',weight:active?11:9,opacity:.92,lineCap:'round',lineJoin:'round'}).addTo(this.map);
+      const core=L.polyline(coords,{pane:'routeBasePane',color,weight:active?6.5:5,opacity:active?1:.86,lineCap:'round',lineJoin:'round',className:'route-core-path'}).addTo(this.map);
+      const shine=L.polyline(coords,{pane:'routeShinePane',color:'#ffffff',weight:active?2.1:1.4,opacity:active?.78:.46,lineCap:'round',className:'route-shimmer-path'}).addTo(this.map);
+      [border,core].forEach(layer=>layer.on('click',()=>this.onSelect?.(route.id)));
+      this.layers.push(glow,border,core,shine);
+
+      const routeStops=(route.stops||[]).slice().sort((a,b)=>a.seq-b.seq);
+      routeStops.forEach((stop,index)=>{
+        const isFirst=index===0, isFinal=index===routeStops.length-1;
+        let html;
+        if(isFinal){
+          html=`<div class="delivery-stop final" style="--pin:${color}"><svg viewBox="0 0 24 24"><path d="M5 3h2v18H5V3Zm3 1h10l-2.2 3L18 10H8V4Zm2 2v2h5.1l-.7-1 .7-1H10Z"/></svg><em>Entrega final</em></div>`;
+        }else if(isFirst){
+          html=`<div class="delivery-stop first" style="--pin:${color}"><span>1</span><em>1ª entrega</em></div>`;
+        }else{
+          html=`<div class="delivery-stop" style="--pin:${color}">${stop.seq}</div>`;
+        }
+        const marker=L.marker([stop.lat,stop.lng],{icon:L.divIcon({className:'',html,iconSize:[isFinal?34:isFirst?32:27,isFinal?34:isFirst?32:27],iconAnchor:[isFinal?17:isFirst?16:13.5,isFinal?17:isFirst?16:13.5]}),zIndexOffset:1050+(stop.seq||0)}).addTo(this.map);
+        marker.bindPopup(`<b>${isFinal?'Entrega final':isFirst?'Primeira entrega':'Parada '+stop.seq}</b><br>${stop.city}<br>${stop.client}<br><small>${route.order} · ${route.name}</small>`);
+        this.layers.push(marker);
+      });
+
+      const truckIndex=Math.max(0,Math.floor((coords.length-1)*(route.progress??.42)));
+      const truckPoint=coords[truckIndex];
+      if(truckPoint){
+        const truckHtml=`<div class="truck-modern" style="--pin:${color}"><svg viewBox="0 0 24 24"><path d="M3 5h11v9h2.3l1.7-3h2.4l1.6 2.5V17h-2.2a3 3 0 0 1-5.6 0H9.8a3 3 0 0 1-5.6 0H2V7a2 2 0 0 1 1-2Zm2 2v6h7V7H5Zm12.4 6H19l-.8-1.2-.8 1.2ZM7 18.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Zm10 0a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z"/></svg></div>`;
+        const truck=L.marker(truckPoint,{icon:L.divIcon({className:'',html:truckHtml,iconSize:[42,30],iconAnchor:[21,15]}),zIndexOffset:1150}).addTo(this.map).bindPopup(`<b>${route.plate}</b><br>${route.driver}<br>${route.status}<br><small>${route.order} · ${Math.round(route.distanceKm)} km</small>`);
+        this.layers.push(truck);
+      }
+
+      const labelIndex=Math.max(1,Math.min(coords.length-2,Math.floor((coords.length-1)*.68)));
+      const labelPoint=coords[labelIndex];
+      if(labelPoint){
+        const labelHtml=`<div class="route-map-label" style="--pin:${color}"><i></i><b>${route.name}</b><span>${Math.round(route.distanceKm)} km</span></div>`;
+        const label=L.marker(labelPoint,{interactive:false,icon:L.divIcon({className:'',html:labelHtml,iconSize:[130,30],iconAnchor:[65,15]}),zIndexOffset:900}).addTo(this.map);this.layers.push(label);
+      }
+    });
+    const bounds=L.latLngBounds(all);if(bounds.isValid())this.map.fitBounds(bounds,{paddingTopLeft:[40,40],paddingBottomRight:[40,54]});
+    requestAnimationFrame(()=>this.map?.invalidateSize());
+  }
+
+  destroy(){this.fallback?.destroy();this.fallback=null;if(this.map)this.map.remove();this.map=null;this.layers=[];if(this.container)this.container.replaceChildren();}
+}
+
+
+/* src/infrastructure/visualization/route-3d-renderer.js */
+
+class Route3DRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas?.getContext('2d');
+    this.angle = -0.22;
+    this.frame = 0;
+    this.resizeObserver = null;
+  }
+
+  mount(routes) {
+    if (!this.ctx) return;
+    this.routes = routes;
+    this.#resize();
+    this.resizeObserver = new ResizeObserver(() => this.#resize());
+    this.resizeObserver.observe(this.canvas.parentElement);
+    this.canvas.addEventListener('pointermove', this.#pointer);
+    this.#draw();
+  }
+
+  #pointer = event => {
+    if (event.buttons !== 1) return;
+    this.angle += event.movementX * .006;
+  };
+
+  #resize() {
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    const ratio = Math.min(2, globalThis.devicePixelRatio || 1);
+    this.canvas.width = Math.max(1, rect.width * ratio);
+    this.canvas.height = Math.max(1, rect.height * ratio);
+    this.canvas.style.width = `${rect.width}px`;
+    this.canvas.style.height = `${rect.height}px`;
+    this.ctx.setTransform(ratio,0,0,ratio,0,0);
+  }
+
+  #draw = () => {
+    const width = this.canvas.clientWidth, height = this.canvas.clientHeight, ctx = this.ctx;
+    ctx.clearRect(0,0,width,height);
+    const cx = width*.5, cy = height*.58;
+    const project = (x,z,y=0) => {
+      const cos=Math.cos(this.angle), sin=Math.sin(this.angle), rx=x*cos-z*sin, rz=x*sin+z*cos;
+      return [cx+rx, cy+rz*.33-y];
+    };
+    ctx.strokeStyle='rgba(48,130,195,.22)'; ctx.lineWidth=1;
+    for(let i=-10;i<=10;i++){
+      const a=project(i*30,-230),b=project(i*30,230),c=project(-300,i*23),d=project(300,i*23);
+      ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.moveTo(...c);ctx.lineTo(...d);ctx.stroke();
+    }
+    const hubs=[[-170,-40],[174,-82],[-85,-155]];
+    this.routes.forEach((route,index)=>{
+      const target=hubs[index] ?? [0,-130-index*20], start=[0,80], color=safeColor(route.color);
+      ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=10;ctx.lineWidth=3;
+      ctx.beginPath();
+      for(let step=0;step<=32;step++){
+        const t=step/32, bend=Math.sin(t*Math.PI)*(index-1)*50;
+        const x=start[0]+(target[0]-start[0])*t+bend,z=start[1]+(target[1]-start[1])*t,y=Math.sin(t*Math.PI)*38;
+        const p=project(x,z,y); step?ctx.lineTo(...p):ctx.moveTo(...p);
+      }
+      ctx.stroke();ctx.shadowBlur=0;
+      const [x,y]=project(target[0],target[1],9);
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();
+      ctx.font='600 12px Segoe UI';ctx.fillStyle='#eff8ff';ctx.fillText(route.destination.name.split(' - ')[0],x+12,y+4);
+      const pulse=(Date.now()/650+index)%1;
+      const [px,py]=project(start[0]+(target[0]-start[0])*pulse,start[1]+(target[1]-start[1])*pulse,Math.sin(pulse*Math.PI)*38);
+      ctx.fillStyle=color;ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();
+    });
+    const [hx,hy]=project(0,80,10);ctx.fillStyle='#36b7ff';ctx.beginPath();ctx.arc(hx,hy,8,0,Math.PI*2);ctx.fill();
+    ctx.font='700 12px Segoe UI';ctx.fillStyle='#dff5ff';ctx.fillText('Vitória da Conquista',hx+13,hy+4);
+    this.frame=requestAnimationFrame(this.#draw);
+  };
+
+  dispose() {
+    cancelAnimationFrame(this.frame);
+    this.resizeObserver?.disconnect();
+    this.canvas?.removeEventListener('pointermove', this.#pointer);
+  }
+}
+
+
+/* src/presentation/components/ui.js */
+
+const icon = name => `<span class="icon" aria-hidden="true">${escapeHtml(name)}</span>`;
+const badge = status => `<span class="badge badge-${statusTone(status)}">${escapeHtml(status)}</span>`;
+
+function kpis(items) {
+  return `<section class="kpi-grid" aria-label="Indicadores principais">${items.map(item => `<article class="kpi-card">
+    <div class="kpi-label">${icon(item.icon)}<span>${escapeHtml(item.label)}</span></div>
+    <strong>${escapeHtml(item.value)}</strong><small>${escapeHtml(item.note)}</small>
+  </article>`).join('')}</section>`;
+}
+
+function pageHeading(title, description, tag) {
+  return `<div class="section-heading"><div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(description)}</p></div>${tag ? `<span class="section-tag">${escapeHtml(tag)}</span>` : ''}</div>`;
+}
+
+function empty(message = 'Nenhum resultado encontrado.') {
+  return `<div class="empty-state"><strong>Sem resultados</strong><span>${escapeHtml(message)}</span></div>`;
+}
+
+
+/* src/presentation/views/planning-view.js */
+
+
+class PlanningView {
+  constructor(root) { this.root = root; }
+
+  render(data, selectedId, onSelect) {
+    if (!data.routes.length) { this.root.innerHTML = empty('Ajuste os filtros para voltar a visualizar o planejamento.'); return; }
+    const totalKm=data.routes.reduce((sum,route)=>sum+route.distanceKm,0);
+    const totalCost=data.routes.reduce((sum,route)=>sum+route.cost,0);
+    const eta=data.routes.reduce((sum,route)=>sum+route.durationMin,0)/data.routes.length;
+    const inTransit=data.vehicles.filter(v=>v.status==='Em rota').length;
+    const available=data.vehicles.filter(v=>v.status==='Disponível').length;
+    const returned=data.vehicles.filter(v=>v.status==='Retornado').length;
+    const mdfeTransit=data.mdfes.filter(m=>m.status==='Em trânsito').length;
+    const advances=data.tripFinance.filter(x=>x.type==='Adiantamento').reduce((s,x)=>s+x.value,0);
+    const pending=data.tripFinance.filter(x=>String(x.status).includes('Pendente')).reduce((s,x)=>s+x.value,0);
+
+    this.root.innerHTML = `${kpis([
+      {icon:'▤',label:'Ordens de carga',value:data.routes.length,note:'rotas consolidadas'},
+      {icon:'▧',label:'MDF-e em trânsito',value:mdfeTransit,note:`${data.mdfes.length} documentos monitorados`},
+      {icon:'▰',label:'Veículos em trânsito',value:inTransit,note:'acompanhamento operacional'},
+      {icon:'✓',label:'Veículos disponíveis',value:available,note:'prontos para alocação'},
+      {icon:'↶',label:'Veículos retornados',value:returned,note:'aguardando próximo ciclo'},
+      {icon:'◆',label:'Entregas',value:data.deliveries.length,note:'paradas sequenciadas'},
+      {icon:'═',label:'Km planejado',value:`${number(Math.round(totalKm))} km`,note:'trajeto estimado'},
+      {icon:'◉',label:'Custo previsto',value:money(totalCost),note:'simulação por km'}
+    ])}
+    <div class="planning-grid">
+      <article class="panel map-panel"><header><div><span class="panel-kicker">MAPA OPERACIONAL</span><h3>Rotas e veículos em trânsito</h3></div><span class="source-chip">${data.routes.some(r=>r.source==='OSRM')?'● Rotas viárias calculadas':'● Geometria demonstrativa'}</span></header>
+        <div class="map-stage"><div id="route-map"></div><div class="map-legend">${data.routes.map(route=>`<button data-route-legend="${escapeHtml(route.id)}"><i style="--route:${safeColor(route.color)}"></i><span>${escapeHtml(route.name)}</span><b>${escapeHtml(route.destination.name.split(' - ')[0])}</b></button>`).join('')}</div><div class="map-note"><span class="legend-mini hub"><i>H</i>Hub</span><span class="legend-mini first"><i>1</i>1ª entrega</span><span class="legend-mini"><i>•</i>Parada</span><span class="legend-mini final"><i>⚑</i>Entrega final</span><span class="legend-mini truck"><i>▰</i>Veículo</span></div><div class="route-source-badge">Rotas por ruas/rodovias via OSRM · fallback offline</div></div>
+      </article>
+      <article class="panel routes-panel"><header><div><span class="panel-kicker">DESPACHO</span><h3>Rotas, MDF-e e viagens</h3></div><span>${data.routes.length} planejadas</span></header>
+        <div class="route-list">${data.routes.map(route=>this.#routeCard(route,route.id===selectedId)).join('')}</div>
+      </article>
+    </div>
+    <div class="ops-dashboard-grid">
+      <article class="panel compact-panel"><header><div><span class="panel-kicker">MONITORAMENTO</span><h3>Operação logística</h3></div><span>Hoje</span></header><div class="monitor-grid">
+        ${this.#metric('MDF-e emitidas',data.mdfes.length,'▧','blue')}${this.#metric('Em trânsito',mdfeTransit,'▰','cyan')}${this.#metric('Alertas abertos',data.operationalAlerts.length,'!','red')}${this.#metric('Veículos disponíveis',available,'✓','green')}
+      </div></article>
+      <article class="panel compact-panel"><header><div><span class="panel-kicker">FINANCEIRO</span><h3>Financeiro do motorista / viagem</h3></div><span>Período</span></header><div class="monitor-grid">
+        ${this.#metric('Adiantamentos',money(advances),'◈','green')}${this.#metric('Prestação pendente',money(pending),'!','orange')}${this.#metric('Abastecimentos',money(data.tripFinance.filter(x=>x.type==='Abastecimento').reduce((s,x)=>s+x.value,0)),'▰','blue')}${this.#metric('Pedágios',money(data.tripFinance.filter(x=>x.type==='Pedágio').reduce((s,x)=>s+x.value,0)),'◆','purple')}
+      </div></article>
+      <article class="panel compact-panel"><header><div><span class="panel-kicker">ALERTAS</span><h3>Pontos de atenção</h3></div><span>${data.operationalAlerts.length}</span></header><div class="mini-alerts">${data.operationalAlerts.slice(0,4).map(a=>`<div><i class="severity ${a.severity.toLowerCase().replace('í','i')}" ></i><span><b>${escapeHtml(a.title)}</b><small>${escapeHtml(a.detail)}</small></span><time>${escapeHtml(a.time)}</time></div>`).join('')}</div></article>
+    </div>
+    <div class="planning-bottom">
+      <article class="panel"><header><div><span class="panel-kicker">SEQUENCIAMENTO</span><h3>Próximas entregas</h3></div><span>${data.deliveries.length} paradas</span></header>${this.#deliveries(data.deliveries)}</article>
+      <article class="panel"><header><div><span class="panel-kicker">GÊMEO DIGITAL</span><h3>Visão logística 3D</h3></div><span>rotas e hubs estratégicos</span></header><div class="network-stage"><canvas id="network-3d" aria-label="Visualização tridimensional das rotas"></canvas><div class="network-stats"><span><b>${data.routes.length}</b>rotas</span><span><b>${number(Math.round(totalKm))}</b>km</span><span><b>${data.deliveries.length}</b>entregas</span></div></div></article>
+    </div>`;
+    this.root.querySelectorAll('[data-route-card],[data-route-legend]').forEach(element => element.addEventListener('click', () => onSelect(element.dataset.routeCard ?? element.dataset.routeLegend)));
+  }
+
+  #metric(label,value,icon,tone){ return `<div class="monitor-card ${tone}"><span>${icon}</span><div><small>${escapeHtml(label)}</small><b>${typeof value==='number'?number(value):escapeHtml(value)}</b></div></div>`; }
+  #routeCard(route, active) { return `<button class="route-card ${active?'active':''}" data-route-card="${escapeHtml(route.id)}" style="--route:${safeColor(route.color)}"><div class="route-card-top"><span><small>${escapeHtml(route.order)} · ${escapeHtml(route.mdfe||'MDF-e pendente')} · ${escapeHtml(route.region)}</small><strong>${escapeHtml(route.origin.name.split(' - ')[0])} → ${escapeHtml(route.destination.name.split(' - ')[0])}</strong></span>${badge(route.status)}</div><div class="route-facts"><span><small>Veículo</small><b>${escapeHtml(route.vehicle)}</b><em>${escapeHtml(route.plate)}</em></span><span><small>Motorista</small><b>${escapeHtml(route.driver)}</b><em>${route.deliveries} entregas</em></span><span><small>Previsão</small><b>${route.departure} → ${route.arrival}</b><em>${number(Math.round(route.distanceKm))} km</em></span></div><div class="load-line"><span style="width:${route.utilization}%"></span></div><div class="load-meta"><span>Ocupação ${route.utilization}% · ${(route.loadKg/1000).toFixed(1)} t</span><b>−${Math.round(route.savingKm)} km</b></div></button>`; }
+  #deliveries(deliveries) { return `<div class="table-wrap"><table><thead><tr><th>#</th><th>OC</th><th>Cidade</th><th>Cliente</th><th>Janela</th><th>Status</th></tr></thead><tbody>${deliveries.map(item=>`<tr><td>${item.seq}</td><td><b>${escapeHtml(item.order)}</b></td><td>${escapeHtml(item.city)}</td><td>${escapeHtml(item.client)}</td><td>${escapeHtml(item.window)}</td><td>${badge(item.status)}</td></tr>`).join('')}</tbody></table></div>`; }
+}
+
+
+/* src/presentation/views/shell-view.js */
+
+const NAV = [
+  ['planning','⌖','Planejamento'], ['operations','◉','Operações'], ['mdfe','▧','MDF-e'], ['orders','▤','Ordens de Carga'],
+  ['vehicles','▰','Veículos'], ['drivers','●','Motoristas'], ['deliveries','◆','Entregas'], ['finance','◈','Financeiro de Viagem'],
+  ['reports','▥','Relatórios'], ['integrations','⌁','Integrações'], ['settings','⚙','Configurações']
+];
+
+const TITLES = {
+  planning:['Command Center Logístico','Planejamento inteligente de rotas, cargas, MDF-e e entregas'],
+  operations:['Central de Operações','Acompanhamento operacional, eventos, retornos e exceções'],
+  mdfe:['Monitoramento MDF-e','Documentos emitidos, em trânsito, encerrados e com inconsistências'],
+  orders:['Ordens de Carga','Consolidação de carga, veículo, motorista e status'],
+  vehicles:['Gestão de Veículos','Disponibilidade, trânsito, retorno, manutenção e capacidade da frota'],
+  drivers:['Gestão de Motoristas','Desempenho, jornada, pontualidade e alocação'],
+  deliveries:['Gestão de Entregas','Sequência, janelas, clientes e status das entregas'],
+  finance:['Financeiro de Viagem','Adiantamentos, abastecimentos, pedágios, despesas e prestações de contas'],
+  reports:['Relatórios e Indicadores','Eficiência logística, custos e desempenho por rota'],
+  integrations:['Central de Integrações','Serviços externos e evolução para o ambiente Sankhya'],
+  settings:['Configurações','Regras operacionais e preferências de visualização']
+};
+
+class ShellView {
+  constructor(root) { this.root = root; this.handlers = {}; }
+  on(event, handler) { this.handlers[event] = handler; }
+
+  render() {
+    this.root.innerHTML = `<div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"><span></span><span></span><span></span></div><div><b>OMNIROUTE</b><small>TMS INTELLIGENCE</small></div></div>
+        <nav class="nav" aria-label="Navegação principal">${NAV.map(([id,ico,label]) => `<button type="button" data-view="${id}" aria-current="${id==='planning'?'page':'false'}"><span aria-hidden="true">${ico}</span><span>${label}</span></button>`).join('')}</nav>
+        <div class="side-health"><span class="online-dot"></span><div><b>Operação conectada</b><small>Protótipo visual · dados simulados</small></div></div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <button class="mobile-menu" id="menu-toggle" aria-label="Abrir navegação">☰</button>
+          <div class="title-block"><span class="eyebrow">LOGIX TMS · BAHIA</span><h1 id="page-title"></h1><p id="page-subtitle"></p></div>
+          <div class="user-status"><span class="online-dot"></span><div><b>Sistema online</b><small>Administrador · Empresa</small></div><span class="avatar">AD</span></div>
+          <form class="filters" id="filters">
+            <label><span>Período</span><select id="period"><option>Hoje</option><option>Próximos 7 dias</option><option>Últimos 30 dias</option></select></label>
+            <label><span>Região</span><select id="region"><option value="">Todas as regiões</option></select></label>
+            <label><span>Veículo</span><select id="vehicle"><option value="">Todos os veículos</option></select></label>
+            <label><span>Motorista</span><select id="driver"><option value="">Todos os motoristas</option></select></label>
+            <label><span>Ordem de carga</span><input id="order" placeholder="Ex.: OC-1045" autocomplete="off"></label>
+            <button class="primary" type="submit">↻ Atualizar</button>
+          </form>
+        </header>
+        <section class="content" id="view" tabindex="-1"></section>
+      </main>
+    </div><div class="toast" id="toast" role="status"></div>`;
+    this.root.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => this.handlers.navigate?.(button.dataset.view)));
+    this.root.querySelector('#filters').addEventListener('submit', event => { event.preventDefault(); this.handlers.refresh?.(); });
+    ['region','vehicle','driver','order'].forEach(id => this.root.querySelector(`#${id}`).addEventListener(id==='order'?'input':'change', () => this.handlers.filter?.()));
+    this.root.querySelector('#menu-toggle').addEventListener('click', () => this.root.querySelector('.sidebar').classList.toggle('open'));
+  }
+
+  setActive(view) {
+    const title = TITLES[view] ?? TITLES.planning;
+    this.root.querySelector('#page-title').textContent = title[0];
+    this.root.querySelector('#page-subtitle').textContent = title[1];
+    this.root.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-current', button.dataset.view===view?'page':'false'));
+    this.root.querySelector('#filters').classList.toggle('hidden', !['planning','operations','mdfe','orders','deliveries','finance'].includes(view));
+    this.root.querySelector('.sidebar').classList.remove('open');
+  }
+
+  fillFilters(data) {
+    const setOptions = (id, label, values) => {
+      this.root.querySelector(`#${id}`).innerHTML = `<option value="">${escapeHtml(label)}</option>${[...new Set(values)].map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('')}`;
+    };
+    setOptions('region','Todas as regiões',data.routes.map(route=>route.region));
+    setOptions('vehicle','Todos os veículos',data.routes.map(route=>route.vehicle));
+    setOptions('driver','Todos os motoristas',data.routes.map(route=>route.driver));
+  }
+
+  getFilters() { return ['region','vehicle','driver','order'].reduce((result,id) => ({ ...result, [id]: this.root.querySelector(`#${id}`).value }), {}); }
+  toast(message) { const toast = this.root.querySelector('#toast'); toast.textContent=message; toast.classList.add('show'); clearTimeout(this.toastTimer); this.toastTimer=setTimeout(()=>toast.classList.remove('show'),2600); }
+}
+
+
+/* src/presentation/views/data-views.js */
+
+
+const viewRenderers = {
+  mdfe(data) {
+    const transit=data.mdfes.filter(x=>x.status==='Em trânsito').length, closed=data.mdfes.filter(x=>x.status==='Encerrado').length, attention=data.mdfes.filter(x=>x.status==='Atenção').length;
+    return `${kpis([{icon:'▧',label:'MDF-e monitorados',value:data.mdfes.length,note:'documentos no recorte'},{icon:'▰',label:'Em trânsito',value:transit,note:'viagens ativas'},{icon:'✓',label:'Encerrados',value:closed,note:'retornos concluídos'},{icon:'!',label:'Com atenção',value:attention,note:'requer conferência'}])}${pageHeading('MDF-e','Controle documental associado à ordem de carga, veículo e motorista','Protótipo operacional')}<article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>MDF-e</th><th>OC</th><th>Veículo</th><th>Motorista</th><th>Origem</th><th>Destino</th><th>Emissão</th><th>Protocolo</th><th>Status</th></tr></thead><tbody>${data.mdfes.map(m=>`<tr><td><b>${escapeHtml(m.id)}</b></td><td>${escapeHtml(m.order)}</td><td>${escapeHtml(m.vehicle)}</td><td>${escapeHtml(m.driver)}</td><td>${escapeHtml(m.origin)}</td><td>${escapeHtml(m.destination)}</td><td>${escapeHtml(m.issued)}</td><td>${escapeHtml(m.protocol)}</td><td>${badge(m.status)}</td></tr>`).join('')}</tbody></table></div></article>`;
+  },
+
+  finance(data) {
+    const total=data.tripFinance.reduce((s,x)=>s+x.value,0), advances=data.tripFinance.filter(x=>x.type==='Adiantamento').reduce((s,x)=>s+x.value,0), fuel=data.tripFinance.filter(x=>x.type==='Abastecimento').reduce((s,x)=>s+x.value,0), pending=data.tripFinance.filter(x=>String(x.status).includes('Pendente')).reduce((s,x)=>s+x.value,0);
+    return `${kpis([{icon:'◈',label:'Lançamentos',value:data.tripFinance.length,note:'financeiro de viagem'},{icon:'$',label:'Total lançado',value:money(total),note:'recorte atual'},{icon:'✓',label:'Adiantamentos',value:money(advances),note:'liberados'},{icon:'▰',label:'Abastecimentos',value:money(fuel),note:'lançados'},{icon:'!',label:'Pendências',value:money(pending),note:'prestação / acerto'}])}${pageHeading('Financeiro de viagem','Adiantamentos, despesas, abastecimentos, pedágios e prestações de contas','Motorista + rota + ordem')}<article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Lançamento</th><th>Motorista</th><th>Rota</th><th>Tipo</th><th>Descrição</th><th>Data</th><th>Valor</th><th>Status</th></tr></thead><tbody>${data.tripFinance.map(x=>`<tr><td><b>${escapeHtml(x.id)}</b></td><td>${escapeHtml(x.driver)}</td><td>${escapeHtml(x.route)}</td><td>${escapeHtml(x.type)}</td><td>${escapeHtml(x.description)}</td><td>${escapeHtml(x.date)}</td><td>${money(x.value)}</td><td>${badge(x.status)}</td></tr>`).join('')}</tbody></table></div></article>`;
+  },
+
+  operations(data) {
+    const events=[['05:40','OC-1045 saiu do centro de distribuição','Checklist concluído e viagem iniciada'],['07:30','OC-1046 liberada para Brumado','Documentação validada'],['08:00','OC-1047 iniciou carregamento final','Janela de saída em acompanhamento'],['09:18','Previsão da Rota 1 atualizada','Tráfego moderado próximo a Jequié']];
+    return `${kpis([{icon:'●',label:'Em rota',value:'1',note:'OC-1045'},{icon:'✓',label:'No prazo',value:'1',note:'OC-1046'},{icon:'!',label:'Atenção',value:'1',note:'OC-1047'},{icon:'▰',label:'Veículos ativos',value:'3',note:'de 4 disponíveis'}])}<div class="two-cols"><article class="panel"><header><div><span class="panel-kicker">TEMPO REAL</span><h3>Linha do tempo operacional</h3></div></header><div class="timeline">${events.map(event=>`<div><time>${event[0]}</time><span><b>${event[1]}</b><small>${event[2]}</small></span></div>`).join('')}</div></article><article class="panel"><header><div><span class="panel-kicker">PRIORIDADE</span><h3>Exceções e alertas</h3></div></header><div class="alert-list"><div><b>Rota 3</b><span>Janela apertada em Seabra</span>${badge('Atenção')}</div><div><b>PKR-7A41</b><span>Veículo em manutenção</span>${badge('Manutenção')}</div><div><b>Rota 1</b><span>Tráfego moderado em Jequié</span>${badge('Monitorar')}</div></div></article></div>`;
+  },
+
+  orders(data) {
+    return `${pageHeading('Ordens de carga','Planejamento consolidado por região, veículo e motorista',`${data.routes.length} ordens`)}${data.routes.length?`<article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Ordem</th><th>Região</th><th>Destino</th><th>Veículo</th><th>Motorista</th><th>Carga</th><th>Ocupação</th><th>Previsão</th><th>Status</th></tr></thead><tbody>${data.routes.map(route=>`<tr><td><b>${escapeHtml(route.order)}</b></td><td>${escapeHtml(route.region)}</td><td>${escapeHtml(route.destination.name)}</td><td>${escapeHtml(route.vehicle)}<small>${escapeHtml(route.plate)}</small></td><td>${escapeHtml(route.driver)}</td><td>${(route.loadKg/1000).toFixed(1)} t</td><td>${route.utilization}%</td><td>${route.departure} → ${route.arrival}</td><td>${badge(route.status)}</td></tr>`).join('')}</tbody></table></div></article>`:empty()}`;
+  },
+
+  vehicles(data) { return `${pageHeading('Veículos','Capacidade, utilização e disponibilidade da frota',`${data.vehicles.length} veículos`)}<div class="entity-grid">${data.vehicles.map(v=>`<article class="entity-card"><div class="entity-top"><span class="vehicle-icon">▰</span><div><h3>${escapeHtml(v.plate)}</h3><p>${escapeHtml(v.model)} · ${escapeHtml(v.type)}</p></div>${badge(v.status)}</div><div class="metric-row"><span><b>${v.capacity/1000} t</b><small>Capacidade</small></span><span><b>${v.utilization}%</b><small>Utilização</small></span><span><b>R$ ${v.costKm.toFixed(2)}</b><small>Custo/km</small></span></div><div class="card-foot"><span>${number(v.km)} km rodados</span><span>Manutenção ${escapeHtml(v.maintenance)}</span></div></article>`).join('')}</div>`; },
+
+  drivers(data) { return `${pageHeading('Motoristas','Desempenho, jornada e pontualidade',`${data.drivers.length} motoristas`)}<div class="entity-grid">${data.drivers.map(d=>`<article class="entity-card"><div class="entity-top"><span class="driver-avatar">${d.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</span><div><h3>${escapeHtml(d.name)}</h3><p>${escapeHtml(d.vehicle)} · ${escapeHtml(d.route)}</p></div>${badge(d.status)}</div><div class="metric-row"><span><b>${d.score}</b><small>Score</small></span><span><b>${d.onTime}%</b><small>No prazo</small></span><span><b>${escapeHtml(d.hours)}</b><small>Jornada</small></span></div><div class="card-foot"><span>${d.deliveries} entregas registradas</span></div></article>`).join('')}</div>`; },
+
+  deliveries(data) { return `${pageHeading('Entregas','Sequência operacional e janelas de atendimento',`${data.deliveries.length} entregas`)}${data.deliveries.length?`<article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Seq.</th><th>Ordem</th><th>Rota</th><th>Cidade</th><th>Cliente</th><th>Janela</th><th>Peso</th><th>Status</th></tr></thead><tbody>${data.deliveries.map(d=>`<tr><td>${d.seq}</td><td><b>${escapeHtml(d.order)}</b></td><td>${escapeHtml(d.route)}</td><td>${escapeHtml(d.city)}</td><td>${escapeHtml(d.client)}</td><td>${escapeHtml(d.window)}</td><td>${number(d.weight)} kg</td><td>${badge(d.status)}</td></tr>`).join('')}</tbody></table></div></article>`:empty()}`; },
+
+  reports(data) {
+    const maxDistance=Math.max(1,...data.routes.map(r=>r.distanceKm)), maxCost=Math.max(1,...data.routes.map(r=>r.cost));
+    return `${pageHeading('Relatórios e indicadores','Distância, custo, capacidade e desempenho das rotas','Visão gerencial')}<div class="report-grid"><article class="chart-card"><h3>Distância por rota</h3>${bars(data.routes,r=>r.order,r=>r.distanceKm/maxDistance*100,r=>`${Math.round(r.distanceKm)} km`)}</article><article class="chart-card"><h3>Custo previsto</h3>${bars(data.routes,r=>r.order,r=>r.cost/maxCost*100,r=>money(r.cost),'orange')}</article><article class="chart-card"><h3>Utilização de frota</h3>${bars(data.vehicles,v=>v.plate,v=>v.utilization,v=>`${v.utilization}%`,'green')}</article><article class="chart-card insight-card"><h3>Eficiência consolidada</h3><div class="insights"><span><b>${Math.round(data.routes.reduce((s,r)=>s+r.savingKm,0))} km</b><small>economia potencial</small></span><span><b>${Math.round(data.drivers.reduce((s,d)=>s+d.onTime,0)/data.drivers.length)}%</b><small>pontualidade média</small></span><span><b>${data.deliveries.length}</b><small>entregas monitoradas</small></span></div></article></div>`;
+  },
+
+  integrations() { const items=[['Sankhya ERP','Ordens, parceiros e documentos','Preparado','Adapter REST/JX'],['OSRM','Roteirização viária','Ativo','HTTP + fallback'],['GPS / Telemetria','Posição e eventos do veículo','Planejado','Adapter independente'],['Geocodificação','Endereço para coordenadas','Planejado','Provider substituível'],['Prova de entrega','Assinatura e evidências','Planejado','Módulo futuro'],['Webhooks','Sincronização por evento','Planejado','Entrada segura']]; return `${pageHeading('Integrações','Contratos independentes para trocar provedores sem alterar o negócio','Clean Architecture V3')}<div class="integration-grid">${items.map(i=>`<article class="integration-card"><span>${escapeHtml(i[3])}</span><h3>${escapeHtml(i[0])}</h3><p>${escapeHtml(i[1])}</p>${badge(i[2])}</article>`).join('')}</div>`; },
+
+  settings() { const groups=[['Regras de planejamento',['Priorizar menor tempo','Respeitar capacidade do veículo','Alertar atraso de janela','Exibir economia potencial']],['Preferências de visualização',['Animação na visão 3D','Marcadores de entregas','Legenda sobre o mapa','Modo de alto contraste']]]; return `${pageHeading('Configurações','Parâmetros locais do modelo demonstrativo','Configuração local')}<div class="settings-grid">${groups.map((group,g)=>`<article class="settings-card"><h3>${group[0]}</h3>${group[1].map((label,i)=>`<label class="switch-row"><span>${label}</span><input type="checkbox" ${g===1&&i===3?'':'checked'}><i></i></label>`).join('')}</article>`).join('')}</div>`; }
+};
+
+function bars(items,label,width,value,tone='blue') { return `<div class="bars">${items.map(item=>`<div class="bar-row"><span>${escapeHtml(label(item))}</span><i><b style="width:${Math.min(100,width(item))}%;--tone:${tone}"></b></i><strong>${escapeHtml(value(item))}</strong></div>`).join('')}</div>`; }
+
+
+/* src/presentation/dashboard-controller.js */
+
+
+
+
+
+
+class DashboardController {
+  constructor(root, loadDashboard) { this.root=root; this.loadDashboard=loadDashboard; this.filterDashboard=new FilterDashboard(); this.shell=new ShellView(root); this.currentView='planning'; this.selectedRoute='R1'; }
+  async init() { this.shell.render(); this.shell.on('navigate',view=>this.navigate(view)); this.shell.on('filter',()=>this.applyFilters()); this.shell.on('refresh',()=>this.refresh()); this.#showLoading(); this.data=await this.loadDashboard.execute(); this.filtered=this.data; this.shell.fillFilters(this.data); this.navigate('planning'); }
+  navigate(view) { this.currentView=view; this.shell.setActive(view); this.render(); this.root.querySelector('#view')?.focus({preventScroll:true}); }
+  applyFilters() { this.filtered=this.filterDashboard.execute(this.data,this.shell.getFilters()); if(!this.filtered.routes.some(r=>r.id===this.selectedRoute))this.selectedRoute=this.filtered.routes[0]?.id; this.render(); }
+  async refresh() { this.shell.toast('Atualizando rotas e estimativas…'); try{this.data=await this.loadDashboard.execute();this.filtered=this.filterDashboard.execute(this.data,this.shell.getFilters());this.render();this.shell.toast('Planejamento atualizado com sucesso.')}catch(error){console.error(error);this.shell.toast('Não foi possível atualizar. Os dados atuais foram mantidos.')} }
+  render() { this.#disposeVisuals(); const container=this.root.querySelector('#view'); if(this.currentView==='planning'){const planning=new PlanningView(container);planning.render(this.filtered,this.selectedRoute,id=>{this.selectedRoute=id;this.render()});requestAnimationFrame(()=>{const mapElement=this.root.querySelector('#route-map');if(mapElement){this.map=new HybridRouteMapAdapter(mapElement,id=>{this.selectedRoute=id;this.render()});this.map.mount(this.filtered.routes,this.selectedRoute)}const canvas=this.root.querySelector('#network-3d');if(canvas){this.renderer3d=new Route3DRenderer(canvas);this.renderer3d.mount(this.filtered.routes)}});return}const renderer=viewRenderers[this.currentView];container.innerHTML=renderer?renderer(this.filtered):'<div class="empty-state">Tela indisponível.</div>'; }
+  #showLoading(){this.root.querySelector('#view').innerHTML='<div class="loading"><span></span><strong>Preparando o planejamento logístico…</strong></div>'}
+  #disposeVisuals(){this.map?.destroy();this.renderer3d?.dispose();this.map=null;this.renderer3d=null}
+}
+
+
+/* src/main.js */
+
+
+
+
+async function bootstrap() {
+  const root = document.querySelector('#app');
+  const repository = new MockTmsRepository();
+  const routing = new OsrmRoutingService();
+  const loadDashboard = new LoadRouteDashboard(repository, routing);
+  await new DashboardController(root, loadDashboard).init();
+}
+
+bootstrap().catch(error => {
+  console.error(error);
+  document.querySelector('#app').innerHTML = '<main class="fatal-error"><h1>OmniRoute TMS</h1><p>Não foi possível iniciar o painel. Recarregue a página para tentar novamente.</p></main>';
+});
+</script></body></html>

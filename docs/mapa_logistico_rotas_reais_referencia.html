@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Logístico - Rotas Reais</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
+    <!-- Leaflet Routing Machine (Para rotas reais em rodovias) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* Esconder controles do OSRM (nós só queremos as linhas, não as instruções em texto) */
+        .leaflet-routing-container {
+            display: none !important;
+        }
+
+        /* Estilização Customizada dos Marcadores Leaflet */
+        .leaflet-div-icon {
+            background: transparent;
+            border: none;
+        }
+
+        /* Marcador de Hub/Parada (Ponto Pulsante) */
+        .point-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 3px solid #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .point-marker::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+
+        .hub-marker {
+            width: 32px;
+            height: 32px;
+            background-color: #1e293b;
+        }
+
+        /* Marcador do Veículo em Movimento */
+        .vehicle-marker {
+            width: 36px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            transform: skewX(-10deg); /* Visual semelhante ao da imagem */
+            transition: all 0.1s linear;
+            z-index: 1000 !important;
+        }
+        
+        .vehicle-marker i {
+            transform: skewX(10deg); /* Desfaz o skew no ícone */
+        }
+
+        /* Painéis Flutuantes (UI Overlay) */
+        .ui-panel {
+            position: absolute;
+            z-index: 400; /* Acima do mapa */
+            background-color: #1e293b; /* Slate 800 */
+            color: #f8fafc;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+            backdrop-filter: blur(8px);
+        }
+
+        /* Esconder atribuição padrão para visual mais limpo e reposicionar controles */
+        .leaflet-control-attribution {
+            background: rgba(255,255,255,0.7) !important;
+            border-top-left-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Contêiner do Mapa -->
+    <div id="map"></div>
+
+    <!-- Loading Indicator para as Rotas -->
+    <div id="loading-overlay" class="absolute inset-0 z-[500] bg-slate-900/80 flex flex-col items-center justify-center text-white transition-opacity duration-500">
+        <i class="fas fa-satellite-dish text-4xl mb-4 animate-bounce text-blue-400"></i>
+        <h2 class="text-xl font-bold tracking-wider">Calculando Rotas Rodoviárias Reais...</h2>
+        <p class="text-sm text-slate-400 mt-2">Conectando ao OSRM (Open Source Routing Machine)</p>
+    </div>
+
+    <!-- Overlay UI: Legenda Top-Left -->
+    <div class="ui-panel top-6 left-6 p-5 min-w-[220px]">
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between group cursor-pointer" onclick="focusRoute('salvador')">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
+                    <span class="text-sm text-slate-300 font-medium">Rota 1</span>
+                </div>
+                <span class="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Salvador</span>
+            </div>
+            
+            <div class="flex items-center justify-between group cursor-pointer" onclick="focusRoute('brumado')">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></div>
+                    <span class="text-sm text-slate-300 font-medium">Rota 2</span>
+                </div>
+                <span class="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">Brumado</span>
+            </div>
+            
+            <div class="flex items-center justify-between group cursor-pointer" onclick="focusRoute('seabra')">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                    <span class="text-sm text-slate-300 font-medium">Rota 3</span>
+                </div>
+                <span class="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Seabra</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay UI: Status Bottom-Left -->
+    <div class="ui-panel bottom-6 left-6 px-4 py-3 flex items-center gap-5">
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+            <span class="text-[10px] uppercase font-bold text-slate-300">Veículo em Movimento</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-white border border-slate-400"></div>
+            <span class="text-[10px] uppercase font-bold text-slate-300">Parada / Entrega</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-500"></div>
+            <span class="text-[10px] uppercase font-bold text-slate-300">Hub Principal</span>
+        </div>
+    </div>
+
+    <!-- Overlay UI: Info Flutuante Top-Right -->
+    <div class="absolute top-6 right-6 z-[400] flex gap-3">
+        <button onclick="resetMap()" class="bg-white text-slate-700 hover:bg-slate-100 px-4 py-2 rounded-lg shadow-md font-bold text-xs flex items-center gap-2 transition-colors border border-slate-200">
+            <i class="fas fa-expand-arrows-alt"></i> Visão Geral
+        </button>
+    </div>
+
+    <script>
+        // --- CONSTANTES E DADOS ---
+        const HUB_VDC = [-14.8661, -40.8394];
+        
+        const ROUTES = {
+            'salvador': {
+                name: 'Salvador',
+                color: '#3b82f6', // Blue
+                destination: [-12.9714, -38.5014]
+            },
+            'brumado': {
+                name: 'Brumado',
+                color: '#f97316', // Orange
+                destination: [-14.2044, -41.6669]
+            },
+            'seabra': {
+                name: 'Seabra',
+                color: '#10b981', // Emerald
+                destination: [-12.4184, -41.7704]
+            }
+        };
+
+        // Variáveis Globais
+        let map;
+        let animatedMarkers = {};
+        let routeControls = {};
+        let routesLoaded = 0;
+        const totalRoutes = Object.keys(ROUTES).length;
+
+        // Inicializar
+        document.addEventListener("DOMContentLoaded", initMap);
+
+        function initMap() {
+            // 1. Instanciar Mapa
+            map = L.map('map', {
+                zoomControl: false // Movemos o zoom
+            }).setView([-13.5, -40.0], 7);
+
+            // Controle de zoom reposicionado
+            L.control.zoom({ position: 'topright' }).addTo(map);
+
+            // 2. TileLayer (Mapa Claro - Positron CartoDB)
+            // Escolhido por ser muito limpo e destacar as linhas coloridas das rotas
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            drawStaticMarkers();
+
+            calculateRealRoutes();
+        }
+
+        function drawStaticMarkers() {
+            // Desenhar HUB (Vitória da Conquista)
+            const hubIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div class="point-marker hub-marker"><span style="position:absolute; top:-25px; left:50%; transform:translateX(-50%); color:#1e293b; font-weight:bold; font-size:12px; white-space:nowrap; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">Vitória da Conquista</span></div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            L.marker(HUB_VDC, { icon: hubIcon, zIndexOffset: 1000 }).addTo(map);
+
+            // Desenhar Destinos
+            Object.values(ROUTES).forEach(route => {
+                const destIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `
+                        <div class="point-marker" style="background-color: ${route.color}">
+                            <span style="position:absolute; top:-25px; left:50%; transform:translateX(-50%); color:${route.color}; font-weight:bold; font-size:12px; white-space:nowrap; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;">${route.name}</span>
+                        </div>
+                    `,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                L.marker(route.destination, { icon: destIcon }).addTo(map);
+            });
+        }
+
+        function calculateRealRoutes() {
+            Object.keys(ROUTES).forEach(key => {
+                const route = ROUTES[key];
+                
+                // Leaflet Routing Machine usa OSRM por padrão
+                const routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(HUB_VDC),
+                        L.latLng(route.destination)
+                    ],
+                    lineOptions: {
+                        styles: [
+                            // Borda escura para dar contraste
+                            { color: '#1e293b', opacity: 0.8, weight: 8 },
+                            // Linha colorida da rota
+                            { color: route.color, opacity: 1, weight: 5 }
+                        ]
+                    },
+                    show: false, // Esconde as instruções de texto (turn-by-turn)
+                    addWaypoints: false,
+                    routeWhileDragging: false,
+                    fitSelectedRoutes: false,
+                    createMarker: function() { return null; } // Desabilita marcadores padrão do plugin
+                }).addTo(map);
+
+                routeControls[key] = routingControl;
+
+                routingControl.on('routesfound', function(e) {
+                    const coordinates = e.routes[0].coordinates;
+                    
+                    // Iniciar o caminhão animado nesta rota
+                    startTruckAnimation(key, route, coordinates);
+
+                    routesLoaded++;
+                    if(routesLoaded === totalRoutes) {
+                        // Esconder tela de loading quando todas carregarem
+                        const overlay = document.getElementById('loading-overlay');
+                        overlay.style.opacity = '0';
+                        setTimeout(() => { overlay.style.display = 'none'; }, 500);
+                        
+                        // Ajustar o mapa para mostrar todas as rotas
+                        resetMap();
+                    }
+                });
+                
+                routingControl.on('routingerror', function(e) {
+                    console.error("Erro ao rotear: ", e);
+                    routesLoaded++;
+                });
+            });
+        }
+
+        function startTruckAnimation(routeKey, routeData, coordinates) {
+            if (!coordinates || coordinates.length === 0) return;
+
+            // Criar ícone do caminhão
+            const truckIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `
+                    <div class="vehicle-marker" style="background-color: ${routeData.color};">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                `,
+                iconSize: [36, 24],
+                iconAnchor: [18, 12]
+            });
+            
+            // Iniciar na origem
+            const marker = L.marker(coordinates[0], { icon: truckIcon, zIndexOffset: 900 }).addTo(map);
+            animatedMarkers[routeKey] = marker;
+
+            let currentIndex = 0;
+            
+            // OSRM retorna MUITOS pontos (alta precisão).
+            // Para a animação não ser demorada, vamos pular frames dependendo do tamanho da rota.
+            // Ex: Rota longa pula mais pontos por tick.
+            const totalPoints = coordinates.length;
+            const stepJump = Math.max(1, Math.floor(totalPoints / 400)); // Aproximadamente 400 passos para completar
+
+            function animateStep() {
+                if (currentIndex < coordinates.length - 1) {
+                    marker.setLatLng(coordinates[currentIndex]);
+                    
+                    // Rotacionar levemente o ícone baseado na direção (opcional/avançado)
+                    // const next = coordinates[Math.min(currentIndex + stepJump, coordinates.length - 1)];
+                    // const angle = Math.atan2(next.lng - coordinates[currentIndex].lng, next.lat - coordinates[currentIndex].lat) * 180 / Math.PI;
+                    
+                    currentIndex += stepJump;
+                    if(currentIndex >= coordinates.length) currentIndex = coordinates.length - 1;
+                    
+                    // Agendar próximo frame (suavidade via requestAnimationFrame é melhor que setInterval)
+                    setTimeout(() => requestAnimationFrame(animateStep), 30);
+                } else {
+                    // Chegou ao destino, recomeça após pausa
+                    setTimeout(() => {
+                        currentIndex = 0;
+                        marker.setLatLng(coordinates[0]);
+                        requestAnimationFrame(animateStep);
+                    }, 2000);
+                }
+            }
+
+            // Iniciar o loop
+            requestAnimationFrame(animateStep);
+        }
+
+        // --- FUNÇÕES DE CONTROLE DE CÂMERA UI ---
+        
+        function focusRoute(key) {
+            const dest = ROUTES[key].destination;
+            const bounds = L.latLngBounds([HUB_VDC, dest]);
+            
+            // Dá um padding para não ficar colado nas bordas da tela
+            map.flyToBounds(bounds, {
+                paddingTopLeft: [300, 50], // Compensa o painel lateral esquerdo
+                paddingBottomRight: [50, 50],
+                duration: 1.5
+            });
+        }
+
+        function resetMap() {
+            const allPoints = [HUB_VDC];
+            Object.values(ROUTES).forEach(r => allPoints.push(r.destination));
+            
+            const bounds = L.latLngBounds(allPoints);
+            map.flyToBounds(bounds, {
+                paddingTopLeft: [300, 50],
+                paddingBottomRight: [50, 50],
+                duration: 1.5
+            });
+        }
+
+    </script>
+</body>
+</html>
